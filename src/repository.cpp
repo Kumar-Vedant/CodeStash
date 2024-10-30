@@ -2,7 +2,9 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
-#include "zstr.hpp"
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#include "../zstr/zstr.hpp"
 
 using namespace std;
 
@@ -72,6 +74,8 @@ void catFile(string shaHash)
     // print the contents
     cout << ss.str() << endl;
 }
+
+// function to create a git-object (blob, commit, tree, tag)
 void hashObject(string path)
 {
     // read the file
@@ -80,20 +84,69 @@ void hashObject(string path)
     // create a header
     string header = "";
 
+
+
     // convert the header and it's entire content into a SHA-1 hash
 
 
+
+    // initialize a new message context
+    EVP_MD_CTX* hashctx = EVP_MD_CTX_new();
+
+    // set the context to use SHA-1
+    EVP_DigestInit_ex(hashctx, EVP_sha1(), NULL);
+
+    // Read the file in chunks and update the hash
+    char buffer[8192];
+
+    // read the file in chunks and update the hash context
+    while (f.read(buffer, sizeof(buffer)) || f.gcount() > 0)
+    {
+        EVP_DigestUpdate(hashctx, buffer, f.gcount());
+    }
+    
+    // finalize the hash
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int lengthOfHash = 0;
+    
+    EVP_DigestFinal_ex(hashctx, hash, &lengthOfHash);
+
+    // free the context
+    EVP_MD_CTX_free(hashctx);
+
+    // convert the hash into hexadecimal format
+    stringstream ss;
+    for (int i = 0; i < lengthOfHash; ++i) {
+        ss << hex << setw(2) << setfill('0') << (int)hash[i];
+    }
     // print the hash
+    cout << ss.str() << endl;
 
     // separate the first two characters of the hash
+    // calculate the path to the file
+    string folder = ss.str().substr(0, 2);
+    string file = ss.str().substr(2);
+
+    fs::path filePath = ".gitlike/objects";
+    filePath /= folder;
+    filePath /= file;
     
     // create the file first-2-characters/rest
+    // ofstream file(filePath);
 
     // compress the contents of the file and write it to the new git object file
+    // open the file
+    ifstream src(path, ofstream::binary);
+
+    // open the git-object file created
+    zstr::ofstream dst(filePath);
+
+    // copy the compressed data from the source file to the git object file
+    dst << src.rdbuf();
 }
 
 int main(int argc, char const *argv[])
 {
-    initializeRepo("./");
+    hashObject("./README.md");
     return 0;
 }
