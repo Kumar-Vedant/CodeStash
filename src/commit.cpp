@@ -2,6 +2,23 @@
 
 using namespace std;
 
+void readIndex()
+{
+    // open the ".gitlike/index" file
+
+    // separate the header
+
+    // iterate through each line
+
+    // read it
+}
+
+// print names of files in the staging area
+void lsFiles()
+{
+
+}
+
 void createCommit(string commitMessage)
 {
     // find the working directory
@@ -17,6 +34,8 @@ void createCommit(string commitMessage)
     // write commit metadata (tree hash, parent, author, committer, timestamp, message)
 
     // create a commit git-object for the new commit (call hashObject()) and store it in .gitlike/objects
+
+    // update the branch ref to the new commit's hash
 }
 
 void log()

@@ -76,6 +76,8 @@ void catFile(string shaHash)
 }
 
 // function to create a git-object (blob, commit, tree, tag)
+
+// create 4 implementations for each type
 void hashObject(string path)
 {
     // read the file
@@ -147,6 +149,7 @@ void hashObject(string path)
 
 int main(int argc, char const *argv[])
 {
-    hashObject("./README.md");
+    // hashObject("./README.md");
+    initializeRepo("./");
     return 0;
 }

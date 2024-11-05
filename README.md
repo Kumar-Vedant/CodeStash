@@ -18,6 +18,10 @@ This project is an implementation of a basic version control system, inspired by
 - Conflict Resolution: Handle conflicts during merges.
 - Interactive Staging: Stage specific lines or parts of a file.
 
+## Usage
+
+g++ -o test src/repository.cpp -lssl -lcrypto -lz
+
 ## Project Structure
 
 ├── src # Source files\
