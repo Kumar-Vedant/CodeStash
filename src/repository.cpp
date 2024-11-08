@@ -46,7 +46,7 @@ void initializeRepo(string path)
     cout << "git direc initialized" << endl;
 }
 
-void catFile(string shaHash)
+string catFile(string shaHash)
 {
     // calculate the path to the file
     string folder = shaHash.substr(0, 2);
@@ -73,12 +73,14 @@ void catFile(string shaHash)
 
     // print the contents
     cout << ss.str() << endl;
+
+    return ss.str();
 }
 
 // function to create a git-object (blob, commit, tree, tag)
 
 // create 4 implementations for each type
-void hashObject(string path)
+string hashObject(string path)
 {
     // read the file
     zstr::ifstream f(path, ofstream::binary);
@@ -122,7 +124,7 @@ void hashObject(string path)
         ss << hex << setw(2) << setfill('0') << (int)hash[i];
     }
     // print the hash
-    cout << ss.str() << endl;
+    // cout << ss.str() << endl;
 
     // separate the first two characters of the hash
     // calculate the path to the file
@@ -131,10 +133,9 @@ void hashObject(string path)
 
     fs::path filePath = ".gitlike/objects";
     filePath /= folder;
+    fs::create_directories(filePath);
+
     filePath /= file;
-    
-    // create the file first-2-characters/rest
-    // ofstream file(filePath);
 
     // compress the contents of the file and write it to the new git object file
     // open the file
@@ -145,11 +146,13 @@ void hashObject(string path)
 
     // copy the compressed data from the source file to the git object file
     dst << src.rdbuf();
+
+    return ss.str();
 }
 
-int main(int argc, char const *argv[])
-{
-    // hashObject("./README.md");
-    initializeRepo("./");
-    return 0;
-}
+// int main(int argc, char const *argv[])
+// {
+//     // hashObject("./README.md");
+//     initializeRepo("./");
+//     return 0;
+// }

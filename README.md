@@ -21,6 +21,7 @@ This project is an implementation of a basic version control system, inspired by
 ## Usage
 
 g++ -o test src/repository.cpp -lssl -lcrypto -lz
+g++ src/commit.cpp src/repository.cpp -o testCommit -lssl -lcrypto -lz
 
 ## Project Structure
 

@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 string refResolver(string ref)
 {
     // if the file doesn't exist, return
-    // if(filesystem::exists())
+    // if(!filesystem::exists())
     // {
     //     return;
     // }
@@ -77,6 +77,9 @@ void createTag(string tag)
 }
 
 // branches
+
+
+// merge a branch
 
 int main(int argc, char const *argv[])
 {
