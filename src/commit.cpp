@@ -52,7 +52,6 @@ string createTreeObject(string path)
         string entryName = entry.path().filename().string();
         string entryMode = entry.is_directory() ? "040000" : "100644";
 
-
         // make a record to store in the tree object in the format: [mode] space [path] 0x00 [sha-1]
 
         // for a folder, call this function recursively
