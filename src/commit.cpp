@@ -8,17 +8,6 @@ namespace fs = std::filesystem;
 
 using namespace std;
 
-void readIndex()
-{
-    // open the ".gitlike/index" file
-
-    // separate the 12-bytes header
-
-    // iterate through each line
-
-    // read it
-}
-
 // print names of files in the staging area
 void lsFiles()
 {
@@ -34,11 +23,7 @@ void lsFiles()
         data = buffer.str();
     }
     f.close();
-
-
 }
-
-
 
 void log()
 {
@@ -53,7 +38,12 @@ void log()
 
 string createTreeObject(string path)
 {
-    cout << "hi";
+    // if gitlike directory, don't do anything
+    // if(path == "./.gitlike")
+    // {
+    //     return;
+    // }
+
     string treeContent;
 
     // traverse the directory
@@ -73,15 +63,17 @@ string createTreeObject(string path)
         // for a folder, call this function recursively
         if (entry.is_directory())
         {
-            string subDirPath = path + "/" + entryName;
-            string subtreeHash = createTreeObject(subDirPath);
+            // don't include git's internal files for the tree
+            if(entry.path() == "./.gitlike" || entry.path() == "./.git") {continue;}
+
+            string subtreeHash = createTreeObject(entry.path());
             treeContent += entryMode + " " + entryName + '\0' + subtreeHash + '\n';
         }
         else if (entry.is_regular_file())
         {
             // for each file, read the file and create a blob object
-            cout << entryName;
-            string blobHash = hashObject(entryName);
+            // cout << entryName;
+            string blobHash = hashObject(entry.path());
             treeContent += entryMode + " " + entryName + '\0' + blobHash + '\n';
         }
     }
