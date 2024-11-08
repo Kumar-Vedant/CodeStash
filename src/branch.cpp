@@ -77,9 +77,32 @@ void createTag(string tag)
 }
 
 // branches
+void createBranch(string branchName)
+{
+    // get the current commit hash from HEAD
+    ifstream f("./.gitlike/HEAD");
+    string data;
+    {
+        stringstream buffer;
+        buffer << f.rdbuf();
+        data = buffer.str();
+    }
+    string commitHash = refResolver(data);
 
+    // create a new file in .gitlike/refs/heads with the name as branchName
+    ofstream file(".gitlike/refs/heads/" + branchName);
 
-// merge a branch
+    // write the current commit hash to it
+    file << commitHash;
+    file.close();
+}
+
+void listBranches()
+{
+    // go to .gitlike/refs/heads
+    
+    // list all the filenames
+}
 
 int main(int argc, char const *argv[])
 {

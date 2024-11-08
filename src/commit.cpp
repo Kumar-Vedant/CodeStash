@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include "../include/repository.h"
+#include "../include/branch.h"
 #include "iostream"
 
 namespace fs = std::filesystem;
@@ -38,12 +39,6 @@ void log()
 
 string createTreeObject(string path)
 {
-    // if gitlike directory, don't do anything
-    // if(path == "./.gitlike")
-    // {
-    //     return;
-    // }
-
     string treeContent;
 
     // traverse the directory
@@ -83,17 +78,17 @@ string createTreeObject(string path)
     string treeData = header + treeContent;
 
     // create a file to store the records
-    ofstream f("dummy.txt");
+    ofstream f("treeObjDummy.txt");
     
     // store all the records in a file
     f << treeData;
     f.close();
 
     // create a tree git-object for it (call hashObject())
-    string treeHash = hashObject("dummy.txt");
+    string treeHash = hashObject("treeObjDummy.txt");
 
     // delete the original file
-    // fs::remove("dummy.txt");
+    fs::remove("treeObjDummy.txt");
 
     // return own's hash received by hashObject()
     return treeHash;
@@ -120,6 +115,7 @@ void recreateTree(string treeContent, string directory)
             string fileName = line.substr(line.find(" ")+1, line.find("\0")-line.find(" ")-1);
 
             fs::path filePath = directory;
+            fs::create_directories(filePath);
             filePath /= fileName;
 
             // create a new file with the name retrieved from tree
@@ -138,7 +134,7 @@ void recreateTree(string treeContent, string directory)
             // get the uncompressed content of the blob file (call catFile())
             string tree = catFile(hash);
 
-            // get the name of the file from the object
+            // get the name of the folder from the object
             string fileName = line.substr(line.find(" ")+1, line.find("\0")-line.find(" ")-1);
 
             // call recursively to create parse the tree and recreate directory
@@ -148,18 +144,17 @@ void recreateTree(string treeContent, string directory)
 }
 
 // function to restore a directory to a commit
-// it can take a commit hash or a branch name
-void checkout(string commitHash)
+void checkout(string branchName)
 {
-    // check if branch name OR commit hash
+    string commitHash = refResolver("refs/heads/" + branchName);
 
-    // get the commit git-object from the object database (call catFile())
+    // get the commit git-object from the object database
     string commit = catFile(commitHash);
 
     // retrieve the tree object hash from the commit object
     string treeHash = commit.substr(5, 40);
 
-    // get the uncompressed content of the tree git-object (call catFile())
+    // get the uncompressed content of the tree git-object
     string tree = catFile(treeHash);
 
     // recreate directory structure
@@ -193,33 +188,32 @@ void createCommit(string commitMessage)
         data = buffer.str();
     }
     parent.close();
-    // string parentHash = refResolver(data);
-    string parentHash = "test";
+    string parentHash = refResolver(data);
 
     // write commit metadata (tree hash, parent, author, committer, timestamp, message)
-    commitContent += "tree " + treeHash;
-    commitContent += "parent " + parentHash;
-    commitContent += commitMessage;
+    commitContent += "tree " + treeHash + "\n";
+    commitContent += "parent " + parentHash + "\n";
+    commitContent += commitMessage + "\n";
 
     // create a file to store the records
-    ofstream f("dummy.txt");
+    ofstream f("commitObjDummy.txt");
     
     // store all the records in a file
     f << commitContent;
     f.close();
 
     // create a commit git-object for it (call hashObject())
-    string commitHash = hashObject("dummy.txt");
+    string commitHash = hashObject("commitObjDummy.txt");
 
     // delete the original file
-    fs::remove("dummy.txt");
+    fs::remove("commitObjDummy.txt");
 
-    // update the HEAD and branch ref to the new commit's hash
+    // update the branch ref to the new commit's hash
 
 }
 
 int main(int argc, char const *argv[])
 {
-    createTreeObject("./");
+    createCommit("testingtesting...");
     return 0;
 }
