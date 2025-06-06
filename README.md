@@ -14,14 +14,13 @@ This project is an implementation of a basic version control system, inspired by
 - Log: View the history of commits.
 - Diff: Compare changes between different commits or the working directory and the latest commit.
 - Reset: Unstage or undo changes in the repository.
-- Merge: Combine the history of two branches together.
+- Merge: Combine two branches together.
 - Conflict Resolution: Handle conflicts during merges.
 - Interactive Staging: Stage specific lines or parts of a file.
 
 ## Usage
 
-g++ -o test src/repository.cpp -lssl -lcrypto -lz
-g++ src/commit.cpp src/repository.cpp -o testCommit -lssl -lcrypto -lz
+g++ src/cli.cpp src/merge.cpp src/staging.cpp src/commit.cpp src/branch.cpp src/repository.cpp -o gitlikeEVM -lssl -lcrypto -lz
 
 ## Project Structure
 

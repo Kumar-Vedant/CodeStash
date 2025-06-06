@@ -10,13 +10,10 @@ using namespace std;
 
 namespace fs = std::filesystem;
 
-void initializeRepo(string path)
+void initializeRepo()
 {
     // create correct paths for use
-    fs::path worktree(path);
     fs::path file(".gitlike");
-
-    fs::path gitdir = worktree/file;
 
     // create .gitlike subdirectory
     fs::create_directories(file);
@@ -40,10 +37,7 @@ void initializeRepo(string path)
         cerr << "Failed to create .gitlike/HEAD file" << endl;
     }
 
-    // create and write stuff in config file
-
-
-    cout << "git direc initialized" << endl;
+    cout << "gitlike direc initialized" << endl;
 }
 
 string catFile(string shaHash)
@@ -56,23 +50,25 @@ string catFile(string shaHash)
     path /= folder;
     path /= file;
 
-    // read the file at the given path
+    // read the file at the given path in binary mode
     zstr::ifstream f(path, ofstream::binary);
     if (!f.is_open())
     {
         cerr << "invalid gitlike object!" << endl;
     }
     
-    // decompress it's contents
+    // decompress it's contents and put it in the stringstream
     stringstream ss;
     ss << f.rdbuf();
     f.close();
 
-    // remove headers
-    string content = ss.str().substr(ss.str().find("\0") + 1);
+    // remove headers by finding the null escape character('\0')
+    // string content = ss.str().substr(ss.str().find('\0') + 1);
+    string content = ss.str();
+    content = content.substr(content.find('\0') + 1);
 
     // print the contents
-    cout << ss.str() << endl;
+    // cout << ss.str() << endl;
 
     return ss.str();
 }
@@ -84,15 +80,6 @@ string hashObject(string path)
 {
     // read the file
     zstr::ifstream f(path, ofstream::binary);
-
-    // create a header
-    string header = "";
-
-
-
-    // convert the header and it's entire content into a SHA-1 hash
-
-
 
     // initialize a new message context
     EVP_MD_CTX* hashctx = EVP_MD_CTX_new();
@@ -123,11 +110,7 @@ string hashObject(string path)
     for (int i = 0; i < lengthOfHash; ++i) {
         ss << hex << setw(2) << setfill('0') << (int)hash[i];
     }
-    // print the hash
-    // cout << ss.str() << endl;
-
-    // separate the first two characters of the hash
-    // calculate the path to the file
+    // separate the first two characters of the hash to calculate the path to the file
     string folder = ss.str().substr(0, 2);
     string file = ss.str().substr(2);
 
@@ -137,22 +120,14 @@ string hashObject(string path)
 
     filePath /= file;
 
-    // compress the contents of the file and write it to the new git object file
-    // open the file
+    // open the file at the given path
     ifstream src(path, ofstream::binary);
 
-    // open the git-object file created
+    // open the git-object file created and compress the data as it is being written onto it
     zstr::ofstream dst(filePath);
 
-    // copy the compressed data from the source file to the git object file
+    // copy the data from the source file to the git object file (compresses automatically as it is opened using zstr::ofstream)
     dst << src.rdbuf();
 
     return ss.str();
 }
-
-// int main(int argc, char const *argv[])
-// {
-//     // hashObject("./README.md");
-//     initializeRepo("./");
-//     return 0;
-// }

@@ -26,15 +26,75 @@ void lsFiles()
     f.close();
 }
 
+string getParentCommitHash(string commitHash)
+{
+    // get the content of the commit object (call catFile())
+    string commitContent = catFile(commitHash);
+
+    // go to the second line and extract the parent hash
+    
+    // extract the second line
+    int secondLineStart = commitContent.find("\n") + 1;
+    int secondLineEnd = commitContent.find("\n", secondLineStart);
+    commitContent = commitContent.substr(secondLineStart, secondLineEnd-secondLineStart - 1);
+
+    // remove the "parent " text
+    if(commitContent.length() < 7)
+    {
+        return "0";
+    }
+    string parentHash = commitContent.substr(7);
+    parentHash = parentHash.substr(0, parentHash.find(" "));
+
+    return parentHash;
+}
+
 void log()
 {
-    // find the .gitlike directory
+    string directoryPath = "./.gitlike/refs/heads";
+    // iterate through all branches
+    for (const auto& entry : fs::directory_iterator(directoryPath))
+    {
+        // if it's a regular file
+        if (entry.is_regular_file())
+        {
+            // open the file
+            ifstream file(entry.path());
+            if (file.is_open())
+            {
+                string line;
+                getline(file, line);
 
-    // get the reference to the HEAD ref, which contains the reference to the latest commit
+                // get the commit's hash
+                string commitHash = refResolver("refs/heads/" + entry.path().filename().string());
+                string commitContent = catFile(commitHash);
+                
+                // print this commit's content
+                cout<<commitContent<<endl;
+                cout<<endl;
 
-    // each commit has a parent reference
-    // print the contents of the current commit (including author, committer, timestamp, message)
-    // recursively call the log function on the parent commit
+                // iterate to find the previous commit until the initial one is reached
+                while(true)
+                {
+                    commitHash = getParentCommitHash(commitHash);
+                    if(commitHash == "0")
+                    {
+                        break;
+                    }
+                    commitContent = catFile(commitHash);
+                    cout<<commitContent<<endl;
+                    cout<<endl;
+                }
+                file.close();
+            }
+            else
+            {
+                cerr << "Failed to open file: " << entry.path() << endl;
+            }
+
+            cout << "---------------------------------\n";
+        }
+    }
 }
 
 string createTreeObject(string path)
@@ -48,8 +108,10 @@ string createTreeObject(string path)
     for (const auto & entry : fs::directory_iterator(workingDir))
     {
         // retrieve the file mode, it's path and compute it's SHA-1 hash
-        // string entryPath = entry.path().string();
-        string entryName = entry.path().filename().string();
+        string entryPath = entry.path().string();
+        // string entryName = entry.path().filename().string();
+
+        // FIX
         string entryMode = entry.is_directory() ? "040000" : "100644";
 
         // make a record to store in the tree object in the format: [mode] space [path] 0x00 [sha-1]
@@ -58,17 +120,16 @@ string createTreeObject(string path)
         if (entry.is_directory())
         {
             // don't include git's internal files for the tree
-            if(entry.path() == "./.gitlike" || entry.path() == "./.git") {continue;}
+            if(entry.path() == "./.gitlike" || entry.path() == "./.git") { continue; }
 
             string subtreeHash = createTreeObject(entry.path());
-            treeContent += entryMode + " " + entryName + '\0' + subtreeHash + '\n';
+            treeContent += entryMode + " " + entryPath + '\0' + subtreeHash + '\n';
         }
+        // for each file, read the file and create a blob object
         else if (entry.is_regular_file())
         {
-            // for each file, read the file and create a blob object
-            // cout << entryName;
             string blobHash = hashObject(entry.path());
-            treeContent += entryMode + " " + entryName + '\0' + blobHash + '\n';
+            treeContent += entryMode + " " + entryPath + '\0' + blobHash + '\n';
         }
     }
 
@@ -83,7 +144,7 @@ string createTreeObject(string path)
     f << treeData;
     f.close();
 
-    // create a tree git-object for it (call hashObject())
+    // create a tree git-object for it
     string treeHash = hashObject("treeObjDummy.txt");
 
     // delete the original file
@@ -93,7 +154,7 @@ string createTreeObject(string path)
     return treeHash;
 }
 
-void recreateTree(string treeContent, string directory)
+void recreateTree(string treeContent)
 {
     // create an input string stream
     istringstream stream(treeContent);
@@ -102,24 +163,27 @@ void recreateTree(string treeContent, string directory)
     // read each line from the stream
     while (getline(stream, line))
     {
+        if(line.find("tree ") == 0)
+        {
+            continue;
+        }
         // if it is a blob, create a file in the working directory
         if(line.find("100644") == 0)
         {
             // get the hash of the object
-            string hash = line.substr(line.find("\0") + 1);
-            // get the uncompressed content of the blob file (call catFile())
+            string hash = line.substr(line.find('\0') + 1);
+            // get the uncompressed content of the blob file
             string content = catFile(hash);
 
-            // get the name of the file from the object
-            string fileName = line.substr(line.find(" ")+1, line.find("\0")-line.find(" ")-1);
+            // get the path of the file from the object
+            string filePath = line.substr(line.find(" ")+1, line.find('\0')-line.find(" ")-1);
 
-            fs::path filePath = directory;
-            fs::create_directories(filePath);
-            filePath /= fileName;
+            // create required directory
+            fs::create_directories(filePath.substr(0, filePath.find_last_of("/")));
 
             // create a new file with the name retrieved from tree
             ofstream f(filePath);
-    
+
             // put the contents into the new file created
             f << content;
             f.close();
@@ -129,15 +193,12 @@ void recreateTree(string treeContent, string directory)
         if(line.find("040000") == 0)
         {
             // get the hash of the object
-            string hash = line.substr(line.find("\0") + 1);
-            // get the uncompressed content of the blob file (call catFile())
+            string hash = line.substr(line.find('\0') + 1);
+            // get the uncompressed content of the blob file
             string tree = catFile(hash);
-
-            // get the name of the folder from the object
-            string fileName = line.substr(line.find(" ")+1, line.find("\0")-line.find(" ")-1);
-
-            // call recursively to create parse the tree and recreate directory
-            recreateTree(tree, fileName);
+            
+            // call recursively to parse the tree and recreate directory
+            recreateTree(tree);
         }
     }
 }
@@ -145,7 +206,8 @@ void recreateTree(string treeContent, string directory)
 // function to restore a directory to a commit
 void checkout(string branchName)
 {
-    string commitHash = refResolver("refs/heads/" + branchName);
+    // FIX
+    string commitHash = refResolver("refs/heads/master");
 
     // get the commit git-object from the object database
     string commit = catFile(commitHash);
@@ -157,11 +219,15 @@ void checkout(string branchName)
     string tree = catFile(treeHash);
 
     // recreate directory structure
-    recreateTree(tree, "./");
+    recreateTree(tree);
 
     // update index (staging area)
     // update the HEAD reference
+    ofstream file("./.gitlike/HEAD");
+    file << "ref: refs/heads/" + branchName;
+    file.close();
 }
+
 void createCommit(string commitMessage)
 {
     // find the working directory
@@ -179,7 +245,7 @@ void createCommit(string commitMessage)
     string treeHash = createTreeObject(path);
 
     // get parent as the current commit with HEAD
-    ifstream parent("HEAD");
+    ifstream parent("./.gitlike/HEAD");
     string data;
     {
         stringstream buffer;
@@ -208,11 +274,29 @@ void createCommit(string commitMessage)
     fs::remove("commitObjDummy.txt");
 
     // update the branch ref to the new commit's hash
+    ifstream branch("./.gitlike/HEAD");
+    string d;
+    
+    stringstream b;
+    b << branch.rdbuf();
+    d = b.str();
 
+    branch.close();
+
+    string branchName = d.substr(16);
+
+    branchName.erase(branchName.find_last_not_of(" \n\r\t") + 1);
+
+    // update the branch ref
+    ofstream branchHash("./.gitlike/refs/heads/" + branchName);
+    branchHash << commitHash;
+    branchHash.close();
 }
 
-int main(int argc, char const *argv[])
-{
-    createCommit("testingtesting...");
-    return 0;
-}
+// int main(int argc, char const *argv[])
+// {
+//     createCommit("testing 123");
+//     // checkout("master");
+//     // log();
+//     return 0;
+// }
